@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class OrderResponse {
+
     private Long id;
     private Long userId;
     private String productName;
@@ -20,4 +21,8 @@ public class OrderResponse {
     private BigDecimal amount;
     private String status;
     private LocalDateTime createdAt;
+
+    private UserDto user;
+
+    private String message;
 }

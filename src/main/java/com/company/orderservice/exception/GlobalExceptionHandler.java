@@ -1,6 +1,8 @@
 package com.company.orderservice.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -12,9 +14,20 @@ import java.time.LocalDateTime;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Handles custom runtime exceptions (like user not found)
+    private static final Logger logger =
+            LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleRuntimeException(
+            RuntimeException ex,
+            HttpServletRequest request) {
+
+        logger.error(
+                "Final failure: request failed for path={}, message={}",
+                request.getRequestURI(),
+                ex.getMessage()
+        );
+
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
@@ -22,18 +35,29 @@ public class GlobalExceptionHandler {
                 .message(ex.getMessage())
                 .path(request.getRequestURI())
                 .build();
-        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(error);
     }
 
-    // Handles @Valid input validation failures (blank fields, negative values, etc.)
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleValidationException(
+            MethodArgumentNotValidException ex,
+            HttpServletRequest request) {
+
         String firstErrorMessage = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
                 .findFirst()
                 .map(fieldError -> fieldError.getDefaultMessage())
                 .orElse("Validation failed");
+
+        logger.warn(
+                "Validation failure: path={}, message={}",
+                request.getRequestURI(),
+                firstErrorMessage
+        );
 
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
@@ -42,6 +66,9 @@ public class GlobalExceptionHandler {
                 .message(firstErrorMessage)
                 .path(request.getRequestURI())
                 .build();
-        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(error);
     }
 }
